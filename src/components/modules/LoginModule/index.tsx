@@ -17,7 +17,7 @@ import { loginSchema } from "@/components/schemas/login.schema";
 
 export const LoginModule = () => {
   const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(loginSchema),
   });
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
@@ -65,7 +65,9 @@ export const LoginModule = () => {
             )}
           />
           <div className="flex items-center justify-end">
-            <Button type="submit">Submit</Button>
+            <Button type="submit" disabled={!form.formState.isValid}>
+              Submit
+            </Button>
           </div>
         </form>
       </Form>

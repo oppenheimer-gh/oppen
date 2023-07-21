@@ -1,4 +1,3 @@
-import { registerSchema } from "@/components/schemas/register.schema";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,17 +13,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { loginSchema } from "@/components/schemas/login.schema";
+import { useAuthContext } from "@/components/contexts";
 
 export const LoginModule = () => {
+  const { login } = useAuthContext();
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
   });
 
-  function onSubmit(values: z.infer<typeof loginSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
-  }
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    await login(values);
+  };
 
   return (
     <div className="flex flex-col gap-4 items-center justify-center">

@@ -15,21 +15,29 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { PROFILE_PICTURE_OPTIONS } from "./constants";
+import { useAuthContext } from "@/components/contexts";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export const RegisterModule = () => {
+  const { register } = useAuthContext();
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      is_mentor: "false",
+    },
   });
 
   const [profilePictureUrl, setProfilePictureUrl] = useState<string>("");
 
-  function onSubmit(values: z.infer<typeof registerSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    const { confirmPassword, ...rest } = values;
-    const finalValues = { ...rest, profilePictureUrl };
-    console.log(finalValues);
-  }
+  const onSubmit = async (values: z.infer<typeof registerSchema>) => {
+    const { confirmPassword, is_mentor, ...rest } = values;
+    const finalValues = {
+      ...rest,
+      profile_picture_url: profilePictureUrl,
+      is_mentor: is_mentor === "true" ? true : false,
+    };
+    await register(finalValues);
+  };
 
   return (
     <div className="flex flex-col gap-4 items-center justify-center">
@@ -52,7 +60,19 @@ export const RegisterModule = () => {
               </FormItem>
             )}
           />
-
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="arkanalexei@gmail.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormItem>
             <FormLabel>Profile Picture</FormLabel>
             <div className="flex items-center justify-center gap-6 flex-wrap">
@@ -90,6 +110,7 @@ export const RegisterModule = () => {
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="confirmPassword"
@@ -107,6 +128,38 @@ export const RegisterModule = () => {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="is_mentor"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel>I am registering as a...</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    className="flex flex-col space-y-1"
+                  >
+                    <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="false" />
+                      </FormControl>
+                      <FormLabel className="font-normal">Mentee</FormLabel>
+                    </FormItem>
+                    <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="true" />
+                      </FormControl>
+                      <FormLabel className="font-normal">Mentor</FormLabel>
+                    </FormItem>
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="flex items-center justify-end">
             <Button
               type="submit"

@@ -27,7 +27,7 @@ export const LoginModule = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col gap-4 items-center justify-center">
       <h1 className="font-semibold text-xl">Login</h1>
       <Form {...form}>
         <form

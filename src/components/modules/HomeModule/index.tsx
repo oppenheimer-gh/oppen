@@ -258,6 +258,21 @@ export const HomeModule = () => {
           description: "You can't pick regions of the ocean.",
           variant: "destructive",
         });
+
+        // Reset points and linestring if the user clicked in the ocean.
+        geojsonRef.current.features = geojsonRef.current.features.filter(
+            (point: any) =>
+                point.properties?.userId !== user?.id
+        );
+
+        linestringRef.current.geometry.coordinates = [];
+        setPinpointType("src");
+
+        // Reset map data
+        const map = e.target;
+        const source = map.getSource("geojson") as GeoJSONSource;
+        source.setData(geojsonRef.current);
+
       } else {
         if (pinpointType === "src") {
           setSource({
@@ -276,17 +291,17 @@ export const HomeModule = () => {
         }
         toast({
           title: `Setting ${
-            pinpointType === "src" ? "source" : "destination"
+              pinpointType === "src" ? "source" : "destination"
           } country:`,
           description: country,
           action: (
-            <Image
-              src={`https://flagcdn.com/48x36/${country_code}.png`}
-              width={50}
-              height={50}
-              alt={`${country} flag`}
-              quality={100}
-            />
+              <Image
+                  src={`https://flagcdn.com/48x36/${country_code}.png`}
+                  width={50}
+                  height={50}
+                  alt={`${country} flag`}
+                  quality={100}
+              />
           ),
         });
       }

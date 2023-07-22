@@ -5,7 +5,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAuthContext, useHomeContext } from "@/components/contexts";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -20,12 +20,112 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createCommentSchema } from "@/components/schemas/create-comment.schema";
+import * as z from "zod";
+import { Comment } from "./interface";
+import { AiFillDelete } from "react-icons/ai";
 
 export const PostSheet: React.FC = () => {
-  const { user } = useAuthContext();
+  const { user, zaxios } = useAuthContext();
   const { openPostSheet, setOpenPostSheet, post } = useHomeContext();
+  const { toast } = useToast();
+  const [comments, setComments] = useState<Comment[] | null>(null);
 
   const findMentor = async () => {};
+
+  const getCommentsByPostId = async () => {
+    try {
+      const {
+        data: { results: comments },
+      } = await zaxios({
+        method: "GET",
+        url: `/comment/post/${post?.id}/?page=1&limit=1000000`,
+      });
+      setComments(comments);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while fetching comments",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createComment = async (data: z.infer<typeof createCommentSchema>) => {
+    try {
+      await zaxios(
+        {
+          method: "POST",
+          url: `/comment/post/${post?.id}/`,
+          data,
+        },
+        true
+      );
+      toast({
+        title: "Success!",
+        description: "Comment created.",
+      });
+      getCommentsByPostId();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while creating comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteComment = async (id: string) => {
+    try {
+      await zaxios(
+        {
+          method: "DELETE",
+          url: `/comment/delete/${id}/`,
+        },
+        true
+      );
+      toast({
+        title: "Success!",
+        description: "Comment deleted.",
+      });
+      getCommentsByPostId();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while deleting comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const form = useForm<z.infer<typeof createCommentSchema>>({
+    resolver: zodResolver(createCommentSchema),
+    defaultValues: {
+      message: "",
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof createCommentSchema>) => {
+    form.reset();
+    await createComment(values);
+  };
+
+  useEffect(() => {
+    if (!!post) {
+      getCommentsByPostId();
+    }
+  }, [post]);
 
   return (
     <Sheet
@@ -81,36 +181,82 @@ export const PostSheet: React.FC = () => {
               <Separator />
               <div className="flex flex-col gap-4">
                 <span className="font-medium">Comments</span>
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Avatar
-                        className={
-                          "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
-                        }
-                      >
-                        <AvatarImage src={""} />
-                        <AvatarFallback>PC</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col gap-1">
-                        <CardTitle>Card Title</CardTitle>
-                        <CardDescription>Card Description</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <span>Card Content</span>
-                  </CardContent>
-                </Card>
+                {comments?.map(
+                  ({ id, created_at, message, user: commentMaker }, index) => {
+                    return (
+                      <Card key={index}>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Avatar
+                                className={
+                                  "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
+                                }
+                              >
+                                <AvatarImage
+                                  src={commentMaker.profile_photo_url}
+                                />
+                                <AvatarFallback>PC</AvatarFallback>
+                              </Avatar>
+
+                              <div className="flex flex-col gap-1">
+                                <CardTitle>{commentMaker.username}</CardTitle>
+                                <CardDescription>
+                                  {new Date(created_at).toDateString()}
+                                </CardDescription>
+                              </div>
+                            </div>
+                            {commentMaker.id === user?.id ? (
+                              <AiFillDelete
+                                size={20}
+                                onClick={() => deleteComment(id)}
+                                className="hover:cursor-pointer hover:scale-105 hover:rotate-6 duration-75 transition hover:text-red-500"
+                              />
+                            ) : null}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <span>{message}</span>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                )}
 
                 <Separator />
 
-                <Textarea
-                  placeholder={`Reach ${post?.user.username} out... `}
-                  rows={6}
-                />
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-6"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Reach {post?.user.username} out...{" "}
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Type your message here..."
+                              rows={6}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <Button>Submit</Button>
+                    <div className="flex items-center justify-end">
+                      <Button type="submit" disabled={!form.formState.isValid}>
+                        Submit
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </div>
             </div>
           </TabsContent>

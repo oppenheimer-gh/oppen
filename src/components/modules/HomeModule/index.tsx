@@ -69,7 +69,7 @@ export const HomeModule = () => {
       data: geojsonRef.current,
     });
 
-    map.loadImage("https://i.imgur.com/jHMeSRf.png", (error, image) => {
+    map.loadImage("https://img.icons8.com/?size=512&id=13800&format=png", (error, image) => {
       if (error || !image) throw error;
       const imageId = new Date().getTime();
       map.addImage(`custom-marker-${imageId}`, image);

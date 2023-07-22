@@ -488,11 +488,14 @@ export const PostSheet: React.FC = () => {
           <TabsContent value="mentor">
             <div className="flex flex-col gap-4">
               {mentors?.length === 0 ? (
-                <span>
-                  You have not been matched with any mentors. Click the button
-                  below to be guided to learn your region language! It&apos;s
-                  worth the shot.
-                </span>
+                <>
+                  <span>
+                    You have not been matched with any mentors. Click the button
+                    below to be guided to learn your region language! It&apos;s
+                    worth the shot.
+                  </span>
+                  <Button onClick={findMentor}>Find me a mentor!</Button>
+                </>
               ) : !!menteeData ? (
                 <>
                   <Card>

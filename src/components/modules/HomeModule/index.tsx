@@ -338,8 +338,7 @@ export const HomeModule = () => {
         description: "Successfully created post.",
       });
       setPinpointType("src");
-      await getUser();
-      await getPosts();
+      window.location.reload();
     } catch (err) {
       toast({
         title: "Error!",

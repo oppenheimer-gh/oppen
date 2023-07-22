@@ -69,7 +69,7 @@ export const HomeModule = () => {
       data: geojsonRef.current,
     });
 
-    map.loadImage("https://i.imgur.com/kpYlg0p.png", (error, image) => {
+    map.loadImage("https://i.imgur.com/jHMeSRf.png", (error, image) => {
       if (error || !image) throw error;
       const imageId = new Date().getTime();
       map.addImage(`custom-marker-${imageId}`, image);
@@ -124,6 +124,7 @@ export const HomeModule = () => {
           id: String(new Date().getTime()),
           userId: post.user.id,
           postId: post.id,
+          isUserPost: post.user.id === user?.id,
         },
       };
 
@@ -137,6 +138,7 @@ export const HomeModule = () => {
           id: String(new Date().getTime()),
           userId: post.user.id,
           postId: post.id,
+          isUserPost: post.user.id === user?.id,
         },
       };
 
@@ -335,7 +337,7 @@ export const HomeModule = () => {
     }
   };
 
-  if (dataisReady && !!user)
+  if (!!user && dataisReady)
     return (
       <div>
         <SelectRegionAlert />

@@ -53,16 +53,10 @@ export const Navbar = () => {
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{user.username}</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                On a mood to socialize and learn, {user.username}?
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <Link href={"/profile"}>Profile</Link>
-              </DropdownMenuItem>
-              {user.is_mentor ? (
-                <DropdownMenuItem className="cursor-pointer">
-                  <Link href={"/dashboard"}>Dashboard</Link>
-                </DropdownMenuItem>
-              ) : null}
               <DropdownMenuItem
                 className="text-red-500 cursor-pointer"
                 onClick={signOut}

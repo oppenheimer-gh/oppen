@@ -272,18 +272,21 @@ export const PostSheet: React.FC = () => {
     if (!!post) {
       getCommentsByPostId();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post]);
 
   useEffect(() => {
     if (!!post && !user?.is_mentor && post.user.id === user?.id) {
       getUserMenteeData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post]);
 
   useEffect(() => {
     if (!!post && user?.is_mentor && post.user.id === user?.id) {
       getUserMentorData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post]);
 
   return (
@@ -531,9 +534,9 @@ export const PostSheet: React.FC = () => {
                 </>
               ) : (
                 <>
-                  {mentors?.map((mentor) => {
+                  {mentors?.map((mentor, index) => {
                     return (
-                      <Card>
+                      <Card key={index}>
                         <CardHeader>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">

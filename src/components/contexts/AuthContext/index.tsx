@@ -120,6 +120,6 @@ export const AuthContextProvider: React.FC<AuthContextProviderProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  const value = { zaxios, register, login, logout, user, setUser };
+  const value = { zaxios, register, login, logout, user, setUser, getUser };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

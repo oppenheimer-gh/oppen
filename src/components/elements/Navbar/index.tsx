@@ -55,8 +55,9 @@ export const Navbar = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>
-                On a mood to {user.is_mentor ? "teach" : "socialize and learn"},{" "}
-                {user.username}?
+                {user.is_mentor
+                  ? `Ready to share and teach, ${user.username}?`
+                  : `On a mood to socialize and learn, ${user.username}?`}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem

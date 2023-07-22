@@ -18,6 +18,7 @@ const DashboardPage: NextPage = () => {
         description: "You cannot access the Dashboard page.",
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   return <DashboardModule />;

@@ -45,6 +45,7 @@ export const HomeContextProvider: React.FC<HomeContextProviderProps> = ({
 
   useEffect(() => {
     getPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = {

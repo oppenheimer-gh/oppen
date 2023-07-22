@@ -117,6 +117,7 @@ export const AuthContextProvider: React.FC<AuthContextProviderProps> = ({
     if (router.isReady && !!localStorage.getItem("token")) {
       getUser();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const value = { zaxios, register, login, logout, user, setUser };

@@ -74,7 +74,7 @@ export const PostSheet: React.FC = () => {
               </span>
 
               <div className="flex flex-col gap-1">
-                <span>Here is {post?.user.username}'s story:</span>
+                <span>Here is {post?.user.username}&apos;s story:</span>
                 <span>{post?.message}</span>
               </div>
 
@@ -118,8 +118,8 @@ export const PostSheet: React.FC = () => {
             <div className="flex flex-col gap-4">
               <span>
                 You have not been matched with any mentors. Click the button
-                below to be guided to learn your region language! It's worth the
-                shot.
+                below to be guided to learn your region language! It&apos;s
+                worth the shot.
               </span>
 
               <Button onClick={findMentor}>Find me a mentor!</Button>

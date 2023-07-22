@@ -4,7 +4,7 @@ import React from "react";
 import { useAuthContext, useHomeContext } from "@/components/contexts";
 import { Button } from "@/components/ui/button";
 
-export const SelectRegionAlert: React.FC = ({}) => {
+export const SelectRegionAlert: React.FC = () => {
   const { user } = useAuthContext();
   const { pinpointType, setOpenSheet } = useHomeContext();
   return (
@@ -12,7 +12,9 @@ export const SelectRegionAlert: React.FC = ({}) => {
       <div className="flex flex-col">
         <AlertTitle className="flex items-center gap-2">
           <RocketIcon className="h-4 w-4" />
-          {user?.has_posted
+          {!user
+            ? "Login to experience a different way of interacting."
+            : user?.has_posted
             ? "Explore the map!"
             : pinpointType === "src"
             ? "Where do you come from?"
@@ -21,7 +23,9 @@ export const SelectRegionAlert: React.FC = ({}) => {
             : "All set!"}
         </AlertTitle>
         <AlertDescription>
-          {user?.has_posted
+          {!user
+            ? "To make posts and connect with language mentors, you must login."
+            : user?.has_posted
             ? "Traverse through the globe to see your penpals!"
             : pinpointType === "src"
             ? "You can select a region by clicking the map."

@@ -338,7 +338,7 @@ export const HomeModule = () => {
     }
   };
 
-  if (!!user && dataisReady)
+  if (dataisReady)
     return (
       <div>
         <SelectRegionAlert />

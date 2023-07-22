@@ -46,7 +46,7 @@ export const HomeModule = () => {
     setOpenPostSheet,
     setPost,
   } = useHomeContext();
-  const { zaxios, user, setUser } = useAuthContext();
+  const { zaxios, user, getUser } = useAuthContext();
 
   const geojsonRef = useRef({
     type: "FeatureCollection" as any,
@@ -100,10 +100,6 @@ export const HomeModule = () => {
       },
       filter: ["in", "$type", "LineString"],
     });
-
-    if (!!posts?.find((post) => post.user.id === user?.id)) {
-      setUser({ ...user, has_posted: true });
-    }
 
     posts?.map((post) => {
       const lineString = {
@@ -313,6 +309,10 @@ export const HomeModule = () => {
       source_longitude: source?.longitude,
       destination_latitude: destination?.latitude,
       destination_longitude: destination?.longitude,
+      source_country: source?.name,
+      source_country_code: source?.code,
+      destination_country: destination?.name,
+      destination_country_code: destination?.code,
     };
 
     await createPost(finalValues);
@@ -326,7 +326,8 @@ export const HomeModule = () => {
         title: "Success!",
         description: "Successfully created post.",
       });
-      setUser({ ...user, has_posted: true });
+      setPinpointType("src");
+      await getUser();
       await getPosts();
     } catch (err) {
       toast({

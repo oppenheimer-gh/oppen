@@ -12,6 +12,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -33,16 +34,46 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCommentSchema } from "@/components/schemas/create-comment.schema";
 import * as z from "zod";
-import { Comment } from "./interface";
+import { Comment, Mentee, Mentor } from "./interface";
 import { AiFillDelete } from "react-icons/ai";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import Image from "next/image";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const PostSheet: React.FC = () => {
   const { user, zaxios } = useAuthContext();
-  const { openPostSheet, setOpenPostSheet, post, getPosts } = useHomeContext();
+  const { openPostSheet, setOpenPostSheet, post } = useHomeContext();
   const { toast } = useToast();
   const [comments, setComments] = useState<Comment[] | null>(null);
+  const [mentors, setMentors] = useState<Mentor[] | null>(null);
+  const [menteeData, setMenteeData] = useState<Mentee | null>(null);
+  const [mentorData, setMentorData] = useState<Mentor | null>(null);
 
-  const findMentor = async () => {};
+  const findMentor = async () => {
+    try {
+      const { data: mentors } = await zaxios({
+        method: "GET",
+        url: `/post/mentors/${post?.id}/`,
+      });
+      setMentors(mentors);
+      toast({
+        title: "Success!",
+        description: "We've got some mentors that might suit your needs.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while fetching comments.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getCommentsByPostId = async () => {
     try {
@@ -99,7 +130,7 @@ export const PostSheet: React.FC = () => {
         title: "Success!",
         description: "Comment created.",
       });
-      getCommentsByPostId();
+      await getCommentsByPostId();
     } catch (err) {
       toast({
         title: "Error",
@@ -122,11 +153,104 @@ export const PostSheet: React.FC = () => {
         title: "Success!",
         description: "Comment deleted.",
       });
-      getCommentsByPostId();
+      await getCommentsByPostId();
     } catch (err) {
       toast({
         title: "Error",
         description: "Error while deleting comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const chooseMentor = async (id: string) => {
+    try {
+      await zaxios(
+        {
+          method: "PATCH",
+          url: `/user/mentee/update-mentor`,
+          data: {
+            mentor_id: id,
+          },
+        },
+        true
+      );
+
+      toast({
+        title: "Success!",
+        description: "Mentor chosen.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while choosing mentor.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getUserMenteeData = async () => {
+    try {
+      const {
+        data: { mentee },
+      } = await zaxios(
+        {
+          method: "GET",
+          url: `/user/mentee/get/`,
+        },
+        true
+      );
+      if (!!mentee.mentor) {
+        setMenteeData(mentee);
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while getting user mentee data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getUserMentorData = async () => {
+    try {
+      const {
+        data: { mentor },
+      } = await zaxios(
+        {
+          method: "GET",
+          url: `/user/mentor/get/`,
+        },
+        true
+      );
+      setMentorData(mentor);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while getting user mentee data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const changeMentorAvailabilityStatus = async () => {
+    try {
+      await zaxios(
+        {
+          method: "PATCH",
+          url: `/user/mentor/toggle/`,
+        },
+        true
+      );
+      toast({
+        title: "Success!",
+        description: "Availability status updated.",
+      });
+      await getUserMentorData();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while updating availability status.",
         variant: "destructive",
       });
     }
@@ -150,6 +274,18 @@ export const PostSheet: React.FC = () => {
     }
   }, [post]);
 
+  useEffect(() => {
+    if (!!post && !user?.is_mentor && post.user.id === user?.id) {
+      getUserMenteeData();
+    }
+  }, [post]);
+
+  useEffect(() => {
+    if (!!post && user?.is_mentor && post.user.id === user?.id) {
+      getUserMentorData();
+    }
+  }, [post]);
+
   return (
     <Sheet
       open={openPostSheet}
@@ -159,7 +295,7 @@ export const PostSheet: React.FC = () => {
     >
       <SheetContent
         side={"right"}
-        className="flex flex-col gap-4 overflow-y-scroll"
+        className="flex flex-col gap-4 overflow-y-scroll min-w-[50%] md:min-w-[35%]"
       >
         <SheetHeader>
           <div className="flex items-center justify-between pr-6">
@@ -173,7 +309,10 @@ export const PostSheet: React.FC = () => {
                 <AvatarFallback>PC</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <SheetTitle>{post?.user.username}</SheetTitle>
+                <SheetTitle className="flex items-center gap-2">
+                  {post?.user.username}
+                  <Badge>{post?.user.is_mentor ? "Mentor" : "Mentee"}</Badge>
+                </SheetTitle>
                 <SheetDescription>
                   {new Date(post?.created_at ?? "1980/01/01").toDateString()}
                 </SheetDescription>
@@ -219,7 +358,7 @@ export const PostSheet: React.FC = () => {
                       <Card key={index}>
                         <CardHeader>
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 w-full">
                               <Avatar
                                 className={
                                   "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
@@ -232,23 +371,28 @@ export const PostSheet: React.FC = () => {
                               </Avatar>
 
                               <div className="flex flex-col gap-1">
-                                <CardTitle>{commentMaker.username}</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                  {commentMaker.username}{" "}
+                                </CardTitle>
                                 <CardDescription>
                                   {new Date(created_at).toDateString()}
                                 </CardDescription>
                               </div>
                             </div>
-                            {commentMaker.id === user?.id ? (
-                              <AiFillDelete
-                                size={20}
-                                onClick={() => deleteComment(id)}
-                                className="hover:cursor-pointer hover:scale-105 hover:rotate-6 duration-75 transition hover:text-red-500"
-                              />
-                            ) : null}
+                            <Badge>
+                              {commentMaker.is_mentor ? "Mentor" : "Mentee"}
+                            </Badge>
                           </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex items-center justify-between">
                           <span>{message}</span>
+                          {commentMaker.id === user?.id ? (
+                            <AiFillDelete
+                              size={20}
+                              onClick={() => deleteComment(id)}
+                              className="hover:cursor-pointer hover:scale-105 hover:rotate-6 duration-75 transition hover:text-red-500"
+                            />
+                          ) : null}
                         </CardContent>
                       </Card>
                     );
@@ -294,13 +438,194 @@ export const PostSheet: React.FC = () => {
           </TabsContent>
           <TabsContent value="mentor">
             <div className="flex flex-col gap-4">
-              <span>
-                You have not been matched with any mentors. Click the button
-                below to be guided to learn your region language! It&apos;s
-                worth the shot.
-              </span>
+              {mentors?.length === 0 ? (
+                <span>
+                  You have not been matched with any mentors. Click the button
+                  below to be guided to learn your region language! It&apos;s
+                  worth the shot.
+                </span>
+              ) : !!menteeData ? (
+                <>
+                  <Card>
+                    <CardHeader className="flex flex-col gap-4">
+                      <span>You now have a mentor!</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Avatar
+                            className={
+                              "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
+                            }
+                          >
+                            <AvatarImage
+                              src={menteeData.mentor?.user?.profile_photo_url}
+                            />
+                            <AvatarFallback>PC</AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col gap-1">
+                            <CardTitle>
+                              {menteeData.mentor?.user?.username}
+                            </CardTitle>
+                            <CardDescription>
+                              {menteeData.mentor?.user?.email}
+                            </CardDescription>
+                          </div>
+                        </div>
 
-              <Button onClick={findMentor}>Find me a mentor!</Button>
+                        <Badge variant={"outline"}>
+                          Number of Mentees: {menteeData.mentor?.mentees_count}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent>
+                      <div className="flex items-center gap-4">
+                        <Badge
+                          variant={"outline"}
+                          className="flex items-center gap-2 px-4 py-2 justify-between"
+                        >
+                          <Label>From</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Image
+                                  src={`https://flagcdn.com/48x36/${menteeData.mentor.source_country_code}.png`}
+                                  width={50}
+                                  height={50}
+                                  alt={`${menteeData.mentor.source_country} flag`}
+                                  quality={100}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <span>{menteeData.mentor.source_country}</span>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </Badge>
+                        <Badge
+                          variant={"outline"}
+                          className="flex items-center gap-2 px-4 py-2 justify-between"
+                        >
+                          <Label>Now in</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Image
+                                  src={`https://flagcdn.com/48x36/${menteeData.mentor.destination_country_code}.png`}
+                                  width={50}
+                                  height={50}
+                                  alt={`${menteeData.mentor.destination_country} flag`}
+                                  quality={100}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <span>
+                                  {menteeData.mentor.destination_country}
+                                </span>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <>
+                  {mentors?.map((mentor) => {
+                    return (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Avatar
+                                className={
+                                  "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
+                                }
+                              >
+                                <AvatarImage
+                                  src={mentor?.user?.profile_photo_url}
+                                />
+                                <AvatarFallback>PC</AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col gap-1">
+                                <CardTitle>{mentor?.user?.username}</CardTitle>
+                                <CardDescription>
+                                  {mentor?.user?.email}
+                                </CardDescription>
+                              </div>
+                            </div>
+
+                            <Badge variant={"outline"}>
+                              Number of Mentees: {mentor?.mentees_count}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent>
+                          <div className="flex items-center gap-4">
+                            <Badge
+                              variant={"outline"}
+                              className="flex items-center gap-2 px-4 py-2 justify-between"
+                            >
+                              <Label>From</Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Image
+                                      src={`https://flagcdn.com/48x36/${mentor.source_country_code}.png`}
+                                      width={50}
+                                      height={50}
+                                      alt={`${mentor.source_country} flag`}
+                                      quality={100}
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <span>{mentor.source_country}</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </Badge>
+                            <Badge
+                              variant={"outline"}
+                              className="flex items-center gap-2 px-4 py-2 justify-between"
+                            >
+                              <Label>Now in</Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Image
+                                      src={`https://flagcdn.com/48x36/${mentor.destination_country_code}.png`}
+                                      width={50}
+                                      height={50}
+                                      alt={`${mentor.destination_country} flag`}
+                                      quality={100}
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <span>{mentor.destination_country}</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </Badge>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button
+                            variant={"outline"}
+                            className="w-full"
+                            onClick={() => {
+                              chooseMentor(mentor.id);
+                            }}
+                          >
+                            Choose
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                  <Button onClick={findMentor}>Find me a mentor!</Button>
+                </>
+              )}
             </div>
           </TabsContent>
           <TabsContent value="profile">
@@ -328,14 +653,52 @@ export const PostSheet: React.FC = () => {
           </TabsContent>
           <TabsContent value="mentees">
             <div className="flex flex-col gap-4">
-              <span>
-                You have not been matched with any mentees. You will be
-                automatically matched with any mentees until you choose not to
-                be available. You can toggle the setting anytime!
-              </span>
-              <div className="flex items-center gap-2">
-                <Switch /> <span>Open to Accept Mentees</span>
+              <div className="flex items-center justify-end gap-2">
+                <Switch
+                  checked={mentorData?.is_available}
+                  onClick={changeMentorAvailabilityStatus}
+                />{" "}
+                <span>Open to Accept Mentees</span>
               </div>
+              {mentorData?.mentees_count === 0 ? (
+                <span>
+                  You have not been matched with any mentees. You will be
+                  automatically matched with any mentees until you choose not to
+                  be available. You can toggle the setting anytime!
+                </span>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <span className="font-medium">You now have mentees!</span>
+                  {mentorData?.mentees?.map((mentee, index) => {
+                    return (
+                      <Card key={index}>
+                        <CardHeader className="flex flex-col gap-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Avatar
+                                className={
+                                  "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
+                                }
+                              >
+                                <AvatarImage
+                                  src={mentee?.user?.profile_photo_url}
+                                />
+                                <AvatarFallback>PC</AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col gap-1">
+                                <CardTitle>{mentee?.user?.username}</CardTitle>
+                                <CardDescription>
+                                  {mentee?.user?.email}
+                                </CardDescription>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

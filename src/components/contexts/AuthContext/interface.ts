@@ -7,6 +7,7 @@ export interface AuthContextInterface {
   logout: any;
   user: User | null;
   setUser: any;
+  getUser: any;
 }
 
 export interface AuthContextProviderProps {
@@ -19,5 +20,5 @@ export interface User {
   email: string;
   is_mentor: boolean;
   profile_photo_url: string;
-  has_posted?: boolean;
+  has_posted: boolean;
 }

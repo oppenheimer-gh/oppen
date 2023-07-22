@@ -27,13 +27,13 @@ export const RegisterModule = () => {
     },
   });
 
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string>("");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string>("");
 
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     const { confirmPassword, is_mentor, ...rest } = values;
     const finalValues = {
       ...rest,
-      profile_picture_url: profilePictureUrl,
+      profile_photo_url: profilePhotoUrl,
       is_mentor: is_mentor === "true" ? true : false,
     };
     await register(finalValues);
@@ -79,10 +79,10 @@ export const RegisterModule = () => {
               {PROFILE_PICTURE_OPTIONS.map((url, index) => {
                 return (
                   <Avatar
-                    onClick={() => setProfilePictureUrl(url)}
+                    onClick={() => setProfilePhotoUrl(url)}
                     key={index}
                     className={`w-[70px] h-[70px] hover:shadow-lg transition duration-75 cursor-pointer ${
-                      profilePictureUrl === url && "opacity-30 shadow-xl"
+                      profilePhotoUrl === url && "opacity-30 shadow-xl"
                     }`}
                   >
                     <AvatarImage src={url} />
@@ -163,7 +163,7 @@ export const RegisterModule = () => {
           <div className="flex items-center justify-end">
             <Button
               type="submit"
-              disabled={!form.formState.isValid || profilePictureUrl === ""}
+              disabled={!form.formState.isValid || profilePhotoUrl === ""}
             >
               Submit
             </Button>

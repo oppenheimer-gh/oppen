@@ -20,7 +20,7 @@ export const Navbar = () => {
   };
 
   return (
-    <nav className="z-[9999] sticky inset-0 px-6 py-4 flex items-center justify-between">
+    <nav className="z-50 sticky inset-0 px-6 py-4 flex items-center justify-between">
       <Link href={"/"}>
         <span className="font-semibold text-xl flex items-center gap-1">
           connect <div className="rounded-full bg-slate-500 p-1" /> two

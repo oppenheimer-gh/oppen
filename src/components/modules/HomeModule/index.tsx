@@ -29,14 +29,24 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
+import { PostSheet } from "./module-elements";
 
 export const HomeModule = () => {
   const { toast } = useToast();
   const [source, setSource] = useState<CountryInterface | null>(null);
   const [destination, setDestination] = useState<CountryInterface | null>(null);
-  const { pinpointType, setPinpointType, openSheet, setOpenSheet } =
-    useHomeContext();
-  const { zaxios } = useAuthContext();
+  const {
+    pinpointType,
+    setPinpointType,
+    openSheet,
+    setOpenSheet,
+    posts,
+    getPosts,
+    dataisReady,
+    setOpenPostSheet,
+    setPost,
+  } = useHomeContext();
+  const { zaxios, user, setUser } = useAuthContext();
 
   const geojsonRef = useRef({
     type: "FeatureCollection" as any,
@@ -90,66 +100,155 @@ export const HomeModule = () => {
       },
       filter: ["in", "$type", "LineString"],
     });
-  };
 
-  const addOrRemovePinpoint = (e: MapLayerMouseEvent) => {
-    const map = e.target;
+    if (!!posts?.find((post) => post.user.id === user?.id)) {
+      setUser({ ...user, has_posted: true });
+    }
 
-    const features = map.queryRenderedFeatures(e.point as PointLike, {
-      layers: ["measure-points"],
-    });
-
-    if (geojsonRef.current.features.length > 1)
-      geojsonRef.current.features.pop();
-
-    if (features.length) {
-      const id = features[0]?.properties?.id;
-      geojsonRef.current.features = geojsonRef.current.features.filter(
-        (point: any) => point?.properties?.id !== id
-      );
-    } else {
-      const point = {
+    posts?.map((post) => {
+      const lineString = {
         type: "Feature",
         geometry: {
-          type: "Point",
-          coordinates: [e.lngLat.lng, e.lngLat.lat],
-        },
-        properties: {
-          id: String(new Date().getTime()),
+          type: "LineString" as any,
+          coordinates: [] as any,
         },
       };
 
-      geojsonRef.current.features.push(point);
-    }
+      const sourcePoint = {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [post.source_longitude, post.source_latitude],
+        },
+        properties: {
+          id: String(new Date().getTime()),
+          userId: post.user.id,
+          postId: post.id,
+        },
+      };
 
-    if (geojsonRef.current.features.length > 1) {
-      linestringRef.current.geometry.coordinates =
-        geojsonRef.current.features.map(
-          (point: any) => point.geometry.coordinates
+      const destinationPoint = {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [post.destination_longitude, post.destination_latitude],
+        },
+        properties: {
+          id: String(new Date().getTime()),
+          userId: post.user.id,
+          postId: post.id,
+        },
+      };
+
+      lineString.geometry.coordinates = [
+        sourcePoint.geometry.coordinates,
+        destinationPoint.geometry.coordinates,
+      ];
+
+      geojsonRef.current.features.push(lineString);
+      geojsonRef.current.features.push(sourcePoint);
+      geojsonRef.current.features.push(destinationPoint);
+
+      const source = map.getSource("geojson") as GeoJSONSource;
+      source.setData(geojsonRef.current);
+    });
+  };
+
+  const addOrRemovePinpoint = (e: MapLayerMouseEvent) => {
+    if (!user?.has_posted) {
+      const map = e.target;
+
+      const features = map.queryRenderedFeatures(e.point as PointLike, {
+        layers: ["measure-points"],
+      });
+
+      if (geojsonRef.current.features.length > 1)
+        geojsonRef.current.features.pop();
+
+      if (features.length) {
+        if (features[0]?.properties?.userId === user?.id) {
+          const id = features[0]?.properties?.id;
+          geojsonRef.current.features = geojsonRef.current.features.filter(
+            (point: any) => point?.properties?.id !== id
+          );
+        }
+      } else {
+        setCountryByCoordinates(e);
+
+        const point = {
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [e.lngLat.lng, e.lngLat.lat],
+          },
+          properties: {
+            id: String(new Date().getTime()),
+            userId: user?.id,
+          },
+        };
+
+        geojsonRef.current.features.push(point);
+      }
+
+      if (geojsonRef.current.features.length > 1) {
+        linestringRef.current.geometry.coordinates =
+          geojsonRef.current.features.map(
+            (point: any) => point.geometry.coordinates
+          );
+
+        geojsonRef.current.features.push(linestringRef.current);
+      }
+
+      const source = map.getSource("geojson") as GeoJSONSource;
+
+      source.setData(geojsonRef.current);
+
+      const pointCount = geojsonRef.current.features.filter((feature: any) => {
+        return (
+          feature.geometry.type === "Point" &&
+          feature.properties.userId === user?.id
         );
+      }).length;
 
-      geojsonRef.current.features.push(linestringRef.current);
+      if (pointCount === 1) {
+        setPinpointType("dest");
+      }
+      if (pointCount === 2) {
+        setPinpointType("done");
+      }
     }
+  };
 
-    const source = map.getSource("geojson") as GeoJSONSource;
-
-    source.setData(geojsonRef.current);
-
-    const pointCount = geojsonRef.current.features.filter((feature: any) => {
-      return feature.geometry.type === "Point";
-    }).length;
-
-    if (pointCount === 1) {
-      setPinpointType("dest");
+  const getPostById = async (postId: string) => {
+    try {
+      const {
+        data: { post },
+      } = await zaxios({ method: "get", url: `/post/${postId}/` });
+      setPost(post);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while getting post",
+        variant: "destructive",
+      });
     }
-    if (pointCount === 2) {
-      setPinpointType("done");
+  };
+
+  const handleOpenPost = async (e: MapLayerMouseEvent) => {
+    const map = e.target;
+    const features = map.queryRenderedFeatures(e.point as PointLike, {
+      layers: ["measure-points"],
+    });
+    const postId = features[0]?.properties?.postId;
+    if (!!postId) {
+      setOpenPostSheet(true);
+      await getPostById(postId);
     }
   };
 
   const onMapClick = async (e: MapLayerMouseEvent) => {
     addOrRemovePinpoint(e);
-    setCountryByCoordinates(e);
+    handleOpenPost(e);
   };
 
   const setCountryByCoordinates = async (e: MapLayerMouseEvent) => {
@@ -221,6 +320,12 @@ export const HomeModule = () => {
     try {
       await zaxios({ method: "POST", url: "/post/add/", data }, true);
       setOpenSheet(false);
+      toast({
+        title: "Success!",
+        description: "Successfully created post.",
+      });
+      setUser({ ...user, has_posted: true });
+      await getPosts();
     } catch (err) {
       toast({
         title: "Error!",
@@ -230,100 +335,108 @@ export const HomeModule = () => {
     }
   };
 
-  return (
-    <div>
-      <SelectRegionAlert />
-      <Map
-        mapboxAccessToken={process.env.NEXT_PUBLIC_MAP_API_KEY}
-        initialViewState={{
-          longitude: -100,
-          zoom: 0,
-          latitude: 40,
-        }}
-        style={{ width: "100%", height: "100vh" }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
-        onClick={(e) => {
-          onMapClick(e);
-        }}
-        onLoad={(e) => {
-          onMapLoad(e as any);
-        }}
-      />
+  if (dataisReady && !!user)
+    return (
+      <div>
+        <SelectRegionAlert />
+        <Map
+          mapboxAccessToken={process.env.NEXT_PUBLIC_MAP_API_KEY}
+          initialViewState={{
+            longitude: -100,
+            zoom: 0,
+            latitude: 40,
+          }}
+          style={{ width: "100%", height: "100vh" }}
+          mapStyle="mapbox://styles/mapbox/streets-v12"
+          onClick={(e) => {
+            onMapClick(e);
+          }}
+          onLoad={(e) => {
+            onMapLoad(e as any);
+          }}
+        />
 
-      <Sheet
-        open={openSheet}
-        onOpenChange={() => {
-          setOpenSheet(!openSheet);
-        }}
-      >
-        <SheetContent side={"bottom"} className="flex flex-col gap-4">
-          <SheetHeader>
-            <SheetTitle>Almost done...</SheetTitle>
-            <SheetDescription>
-              Tell your unique stories living abroad. Feel free to express
-              yourself!
-            </SheetDescription>
-          </SheetHeader>
+        <Sheet
+          open={openSheet}
+          onOpenChange={() => {
+            setOpenSheet(!openSheet);
+          }}
+        >
+          <SheetContent side={"bottom"} className="flex flex-col gap-4">
+            <SheetHeader>
+              <SheetTitle>Almost done...</SheetTitle>
+              <SheetDescription>
+                Tell your unique stories living abroad. Feel free to express
+                yourself!
+              </SheetDescription>
+            </SheetHeader>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="flex flex-col text-sm gap-3">
-                <div className="flex flex-col gap-1">
-                  <span>You are from</span>
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src={`https://flagcdn.com/48x36/${source?.code}.png`}
-                      width={40}
-                      height={40}
-                      alt={`${source?.name} flag`}
-                      quality={100}
-                    />
-                    <span className="font-[500]">{source?.name}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <span>You are abroad in</span>
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src={`https://flagcdn.com/48x36/${destination?.code}.png`}
-                      width={40}
-                      height={40}
-                      alt={`${destination?.name} flag`}
-                      quality={100}
-                    />
-                    <span className="font-[500]">{destination?.name}</span>
-                  </div>
-                </div>
-              </div>
-
-              <FormField
-                control={form.control}
-                name="message"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Message</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Type your message here..."
-                        rows={5}
-                        {...field}
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <div className="flex flex-col text-sm gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span>You are from</span>
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src={`https://flagcdn.com/48x36/${source?.code}.png`}
+                        width={40}
+                        height={40}
+                        alt={`${source?.name} flag`}
+                        quality={100}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <span className="font-[500]">{source?.name}</span>
+                    </div>
+                  </div>
 
-              <div className="flex items-center justify-end">
-                <Button type="submit" disabled={!form.formState.isValid}>
-                  Submit
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
+                  <div className="flex flex-col gap-1">
+                    <span>You are abroad in</span>
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src={`https://flagcdn.com/48x36/${destination?.code}.png`}
+                        width={40}
+                        height={40}
+                        alt={`${destination?.name} flag`}
+                        quality={100}
+                      />
+                      <span className="font-[500]">{destination?.name}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Message</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Type your message here..."
+                          rows={5}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex items-center justify-end">
+                  <Button type="submit" disabled={!form.formState.isValid}>
+                    Submit
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </SheetContent>
+        </Sheet>
+
+        <PostSheet />
+      </div>
+    );
+
+  return <div>Loading...</div>;
 };

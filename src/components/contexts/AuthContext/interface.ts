@@ -19,4 +19,5 @@ export interface User {
   email: string;
   is_mentor: boolean;
   profile_photo_url: string;
+  has_posted?: boolean;
 }

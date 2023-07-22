@@ -38,7 +38,7 @@ import { AiFillDelete } from "react-icons/ai";
 
 export const PostSheet: React.FC = () => {
   const { user, zaxios } = useAuthContext();
-  const { openPostSheet, setOpenPostSheet, post } = useHomeContext();
+  const { openPostSheet, setOpenPostSheet, post, getPosts } = useHomeContext();
   const { toast } = useToast();
   const [comments, setComments] = useState<Comment[] | null>(null);
 
@@ -57,6 +57,29 @@ export const PostSheet: React.FC = () => {
       toast({
         title: "Error",
         description: "Error while fetching comments",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deletePost = async () => {
+    try {
+      await zaxios(
+        {
+          method: "DELETE",
+          url: `/post/delete/${post?.id}/`,
+        },
+        true
+      );
+      toast({
+        title: "Success!",
+        description: "Deleted post.",
+      });
+      window.location.reload();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Error while deleting post.",
         variant: "destructive",
       });
     }
@@ -139,21 +162,30 @@ export const PostSheet: React.FC = () => {
         className="flex flex-col gap-4 overflow-y-scroll"
       >
         <SheetHeader>
-          <div className="flex items-center gap-3">
-            <Avatar
-              className={
-                "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
-              }
-            >
-              <AvatarImage src={post?.user.profile_photo_url} />
-              <AvatarFallback>PC</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <SheetTitle>{post?.user.username}</SheetTitle>
-              <SheetDescription>
-                {new Date(post?.created_at ?? "1980/01/01").toDateString()}
-              </SheetDescription>
+          <div className="flex items-center justify-between pr-6">
+            <div className="flex items-center gap-3">
+              <Avatar
+                className={
+                  "w-[40px] h-[40px] hover:shadow-lg transition duration-75 cursor-pointer"
+                }
+              >
+                <AvatarImage src={post?.user.profile_photo_url} />
+                <AvatarFallback>PC</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <SheetTitle>{post?.user.username}</SheetTitle>
+                <SheetDescription>
+                  {new Date(post?.created_at ?? "1980/01/01").toDateString()}
+                </SheetDescription>
+              </div>
             </div>
+            {post?.user.id === user?.id ? (
+              <AiFillDelete
+                size={20}
+                onClick={deletePost}
+                className="hover:cursor-pointer hover:scale-105 hover:rotate-6 duration-75 transition hover:text-red-500"
+              />
+            ) : null}
           </div>
         </SheetHeader>
         <Tabs defaultValue="story">

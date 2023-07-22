@@ -24,8 +24,12 @@ export const AboutModule = () => {
   return (
     <section className="flex flex-col gap-6 items-center justify-center px-16 py-8">
       <h1 className="font-semibold text-xl">
-        connect two: socializing and learning done in a new way, carefully
-        brewed for students studying abroad.
+        <span className="font-semibold text-xl flex items-center gap-1">
+          connect <div className="rounded-full bg-slate-400 p-1" />
+          <div className="rounded-full bg-slate-600 p-1" /> two
+        </span>
+        socializing and learning done in a new way, carefully brewed for
+        students studying abroad.
       </h1>
 
       <div className="w-full flex flex-wrap items-center justify-center gap-8">
@@ -70,7 +74,9 @@ export const AboutModule = () => {
           <h2 className="text-lg font-medium text-center">
             <div className="flex flex-col">
               <span>Meet new friends who are near your area</span>
-              <span>p.s: in a more interesting format!</span>
+              <span className="text-sm italic">
+                p.s: in a more interesting format!
+              </span>
             </div>
           </h2>
           <Card className="hover:shadow-md hover:scale-[101%] hover:-rotate-1 duration-75 transition">

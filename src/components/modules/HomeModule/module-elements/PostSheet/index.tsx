@@ -667,7 +667,7 @@ export const PostSheet: React.FC = () => {
                 <span>
                   You have not been matched with any mentees. You will be
                   automatically matched with any mentees until you choose not to
-                  be available. You can toggle the setting anytime!
+                  be available. You can toggle the setting any time!
                 </span>
               ) : (
                 <div className="flex flex-col gap-4">

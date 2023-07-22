@@ -40,7 +40,7 @@ export const RegisterModule = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 items-center justify-center">
+    <div className="flex flex-col gap-4 items-center justify-center py-8">
       <h1 className="font-semibold text-xl">Register</h1>
       <Form {...form}>
         <form

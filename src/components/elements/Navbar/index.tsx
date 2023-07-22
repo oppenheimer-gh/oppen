@@ -23,7 +23,8 @@ export const Navbar = () => {
     <nav className="z-50 sticky inset-0 px-6 py-4 flex items-center justify-between">
       <Link href={"/"}>
         <span className="font-semibold text-xl flex items-center gap-1">
-          connect <div className="rounded-full bg-slate-500 p-1" /> two
+          connect <div className="rounded-full bg-slate-400 p-1" />
+          <div className="rounded-full bg-slate-600 p-1" /> two
         </span>
       </Link>
 
@@ -54,8 +55,9 @@ export const Navbar = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>
-                On a mood to {user.is_mentor ? "teach" : "socialize and learn"},{" "}
-                {user.username}?
+                {user.is_mentor
+                  ? `Ready to share and teach, ${user.username}?`
+                  : `On a mood to socialize and learn, ${user.username}?`}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem

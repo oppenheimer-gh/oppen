@@ -12,10 +12,23 @@ import {
 } from "@/components/ui/sheet";
 import Image from "next/image";
 import { GeoJSONSource, PointLike } from "mapbox-gl";
-import { useHomeContext } from "@/components/contexts";
+import { useAuthContext, useHomeContext } from "@/components/contexts";
 import { SelectRegionAlert } from "./module-elements/SelectRegionAlert";
 import { CountryInterface } from "./interface";
 import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createPostSchema } from "@/components/schemas/create-post.schema";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 
 export const HomeModule = () => {
   const { toast } = useToast();
@@ -23,6 +36,7 @@ export const HomeModule = () => {
   const [destination, setDestination] = useState<CountryInterface | null>(null);
   const { pinpointType, setPinpointType, openSheet, setOpenSheet } =
     useHomeContext();
+  const { zaxios } = useAuthContext();
 
   const geojsonRef = useRef({
     type: "FeatureCollection" as any,
@@ -135,14 +149,15 @@ export const HomeModule = () => {
 
   const onMapClick = async (e: MapLayerMouseEvent) => {
     addOrRemovePinpoint(e);
-    getCountryByCoordinates(e);
+    setCountryByCoordinates(e);
   };
 
-  const getCountryByCoordinates = async (e: MapLayerMouseEvent) => {
+  const setCountryByCoordinates = async (e: MapLayerMouseEvent) => {
     try {
+      const { lng: longitude, lat: latitude } = e.lngLat;
       const response = await axios({
         method: "GET",
-        url: `https://api.opencagedata.com/geocode/v1/json?q=${e.lngLat.lat}+${e.lngLat.lng}&key=${process.env.NEXT_PUBLIC_OPEN_CAGE_DATA_API_KEY}`,
+        url: `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${process.env.NEXT_PUBLIC_OPEN_CAGE_DATA_API_KEY}`,
       });
       const { country, country_code } = response.data.results[0].components;
       if (!country) {
@@ -153,9 +168,19 @@ export const HomeModule = () => {
         });
       } else {
         if (pinpointType === "src") {
-          setSource({ name: country, code: country_code });
+          setSource({
+            name: country,
+            code: country_code,
+            longitude,
+            latitude,
+          });
         } else {
-          setDestination({ name: country, code: country_code });
+          setDestination({
+            name: country,
+            code: country_code,
+            longitude,
+            latitude,
+          });
         }
         toast({
           title: `Setting ${
@@ -174,6 +199,35 @@ export const HomeModule = () => {
         });
       }
     } catch (err) {}
+  };
+
+  const form = useForm<z.infer<typeof createPostSchema>>({
+    resolver: zodResolver(createPostSchema),
+  });
+
+  const onSubmit = async (values: z.infer<typeof createPostSchema>) => {
+    const finalValues = {
+      ...values,
+      source_latitude: source?.latitude,
+      source_longitude: source?.longitude,
+      destination_latitude: destination?.latitude,
+      destination_longitude: destination?.longitude,
+    };
+
+    await createPost(finalValues);
+  };
+
+  const createPost = async (data: any) => {
+    try {
+      await zaxios({ method: "POST", url: "/post/add/", data }, true);
+      setOpenSheet(false);
+    } catch (err) {
+      toast({
+        title: "Error!",
+        description: "Error while creating post. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -211,37 +265,63 @@ export const HomeModule = () => {
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex flex-col text-sm gap-3">
-            <div className="flex flex-col gap-1">
-              <span>You are from</span>
-              <div className="flex items-center gap-2">
-                <Image
-                  src={`https://flagcdn.com/48x36/${source?.code}.png`}
-                  width={40}
-                  height={40}
-                  alt={`${source?.name} flag`}
-                  quality={100}
-                />
-                <span className="font-medium">{source?.name}</span>
-              </div>
-            </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="flex flex-col text-sm gap-3">
+                <div className="flex flex-col gap-1">
+                  <span>You are from</span>
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src={`https://flagcdn.com/48x36/${source?.code}.png`}
+                      width={40}
+                      height={40}
+                      alt={`${source?.name} flag`}
+                      quality={100}
+                    />
+                    <span className="font-[500]">{source?.name}</span>
+                  </div>
+                </div>
 
-            <div className="flex flex-col gap-1">
-              <span>You are abroad in</span>
-              <div className="flex items-center gap-2">
-                <Image
-                  src={`https://flagcdn.com/48x36/${destination?.code}.png`}
-                  width={40}
-                  height={40}
-                  alt={`${destination?.name} flag`}
-                  quality={100}
-                />
-                <span className="font-medium">{destination?.name}</span>
+                <div className="flex flex-col gap-1">
+                  <span>You are abroad in</span>
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src={`https://flagcdn.com/48x36/${destination?.code}.png`}
+                      width={40}
+                      height={40}
+                      alt={`${destination?.name} flag`}
+                      quality={100}
+                    />
+                    <span className="font-[500]">{destination?.name}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <Textarea placeholder="Type your message here." rows={10} />
+              <FormField
+                control={form.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Message</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Type your message here..."
+                        rows={5}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex items-center justify-end">
+                <Button type="submit" disabled={!form.formState.isValid}>
+                  Submit
+                </Button>
+              </div>
+            </form>
+          </Form>
         </SheetContent>
       </Sheet>
     </div>

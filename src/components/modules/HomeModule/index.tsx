@@ -86,6 +86,23 @@ export const HomeModule = () => {
       });
     });
 
+    if (!map.getLayer("measure-line")) {
+      map.addLayer({
+        id: "measure-line",
+        type: "line",
+        source: "geojson",
+        layout: {
+          "line-cap": "round",
+          "line-join": "round",
+        },
+        paint: {
+          "line-color": "#000",
+          "line-width": 2.5,
+        },
+        filter: ["in", "$type", "LineString"],
+      });
+    }
+
     map.addLayer({
       id: "measure-lines",
       type: "line",
@@ -102,28 +119,6 @@ export const HomeModule = () => {
     });
 
     posts?.map((post) => {
-      const lineString = {
-        type: "Feature",
-        geometry: {
-          type: "LineString" as any,
-          coordinates: [] as any,
-        },
-      };
-
-      const sourcePoint = {
-        type: "Feature",
-        geometry: {
-          type: "Point",
-          coordinates: [post.source_longitude, post.source_latitude],
-        },
-        properties: {
-          id: String(new Date().getTime()),
-          userId: post.user.id,
-          postId: post.id,
-          isUserPost: post.user.id === user?.id,
-        },
-      };
-
       const destinationPoint = {
         type: "Feature",
         geometry: {
@@ -138,13 +133,6 @@ export const HomeModule = () => {
         },
       };
 
-      lineString.geometry.coordinates = [
-        sourcePoint.geometry.coordinates,
-        destinationPoint.geometry.coordinates,
-      ];
-
-      geojsonRef.current.features.push(lineString);
-      geojsonRef.current.features.push(sourcePoint);
       geojsonRef.current.features.push(destinationPoint);
 
       const source = map.getSource("geojson") as GeoJSONSource;
@@ -160,17 +148,10 @@ export const HomeModule = () => {
         layers: ["measure-points"],
       });
 
-      if (geojsonRef.current.features.length > 1)
-        geojsonRef.current.features.pop();
+      // check if a point is being added or removed
+      const addingPoint = features.length === 0;
 
-      if (features.length) {
-        if (features[0]?.properties?.userId === user?.id) {
-          const id = features[0]?.properties?.id;
-          geojsonRef.current.features = geojsonRef.current.features.filter(
-            (point: any) => point?.properties?.id !== id
-          );
-        }
-      } else {
+      if (addingPoint && pinpointType !== "done") {
         setCountryByCoordinates(e);
 
         const point = {
@@ -182,38 +163,52 @@ export const HomeModule = () => {
           properties: {
             id: String(new Date().getTime()),
             userId: user?.id,
+            type: pinpointType,
           },
         };
 
         geojsonRef.current.features.push(point);
-      }
 
-      if (geojsonRef.current.features.length > 1) {
-        linestringRef.current.geometry.coordinates =
-          geojsonRef.current.features.map(
-            (point: any) => point.geometry.coordinates
+        // If the type is 'dest', add a linestring feature between the source and destination points.
+        if (pinpointType === "dest") {
+          const srcPoint = geojsonRef.current.features.find(
+              (feat: any) => feat.properties && feat.properties.type === "src"
           );
 
-        geojsonRef.current.features.push(linestringRef.current);
+          if (!srcPoint) {
+            toast({
+              title: "Error",
+              description: "Source point is missing. Please reselect the source point before choosing the destination.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          linestringRef.current.geometry.coordinates = [
+            srcPoint.geometry.coordinates,
+            [e.lngLat.lng, e.lngLat.lat],
+          ];
+
+          geojsonRef.current.features.push(linestringRef.current);
+        }
+
+        // cycle between 'src', 'dest', and 'done'
+        setPinpointType(pinpointType === "src" ? "dest" : "done");
+      } else {
+        // Reset points and linestring if either source or destination point is clicked.
+        if (features[0]?.properties?.userId === user?.id) {
+          geojsonRef.current.features = geojsonRef.current.features.filter(
+              (point: any) =>
+                  point.properties?.userId !== user?.id
+          );
+
+          linestringRef.current.geometry.coordinates = [];
+          setPinpointType("src");
+        }
       }
 
       const source = map.getSource("geojson") as GeoJSONSource;
-
       source.setData(geojsonRef.current);
-
-      const pointCount = geojsonRef.current.features.filter((feature: any) => {
-        return (
-          feature.geometry.type === "Point" &&
-          feature.properties.userId === user?.id
-        );
-      }).length;
-
-      if (pointCount === 1) {
-        setPinpointType("dest");
-      }
-      if (pointCount === 2) {
-        setPinpointType("done");
-      }
     }
   };
 

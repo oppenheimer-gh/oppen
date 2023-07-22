@@ -189,10 +189,9 @@ export const HomeModule = () => {
       }
 
       if (geojsonRef.current.features.length > 1) {
-        linestringRef.current.geometry.coordinates =
-          geojsonRef.current.features.map(
-            (point: any) => point.geometry.coordinates
-          );
+        linestringRef.current.geometry.coordinates = geojsonRef.current.features
+          .slice(-1)
+          .map((point: any) => point.geometry.coordinates);
 
         geojsonRef.current.features.push(linestringRef.current);
       }

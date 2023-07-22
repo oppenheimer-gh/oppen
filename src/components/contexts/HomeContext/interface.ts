@@ -27,6 +27,10 @@ export interface Post {
   destination_latitude: string;
   source_longitude: string;
   source_latitude: string;
+  source_country_code: string;
+  source_country: string;
+  destination_country_code: string;
+  destination_country: string;
   distance_in_km: number;
   message: string;
   user: User;

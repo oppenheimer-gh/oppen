@@ -64,7 +64,10 @@ export const PostSheet: React.FC = () => {
       setMentors(mentors);
       toast({
         title: "Success!",
-        description: "We've got some mentors that might suit your needs.",
+        description:
+          mentors.length > 0
+            ? "We've got some mentors that might suit your needs."
+            : "Request successful.",
       });
     } catch (err) {
       toast({

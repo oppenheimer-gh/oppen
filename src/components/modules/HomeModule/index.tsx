@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Map, { MapLayerMouseEvent } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import axios from "axios";
@@ -9,36 +9,40 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import Image from "next/image";
 import { GeoJSONSource, PointLike } from "mapbox-gl";
+import { useHomeContext } from "@/components/contexts";
+import { SelectRegionAlert } from "./module-elements/SelectRegionAlert";
+import { CountryInterface } from "./interface";
+import { Textarea } from "@/components/ui/textarea";
 
 export const HomeModule = () => {
   const { toast } = useToast();
-  const [pinpointType, setPinpointType] = useState<"src" | "dest">("src");
-  const [pinpointCount, setPinpointCount] = useState<number>(0);
-  const [openSheet, setOpenSheet] = useState<boolean>(false);
+  const [source, setSource] = useState<CountryInterface | null>(null);
+  const [destination, setDestination] = useState<CountryInterface | null>(null);
+  const { pinpointType, setPinpointType, openSheet, setOpenSheet } =
+    useHomeContext();
 
-  const geojson = {
+  const geojsonRef = useRef({
     type: "FeatureCollection" as any,
     features: [] as any,
-  };
+  });
 
-  const linestring = {
+  const linestringRef = useRef({
     type: "Feature",
     geometry: {
       type: "LineString" as any,
       coordinates: [] as any,
     },
-  };
+  });
 
   const onMapLoad = (e: MapLayerMouseEvent) => {
     const map = e.target;
 
     map.addSource("geojson", {
       type: "geojson",
-      data: geojson,
+      data: geojsonRef.current,
     });
 
     map.loadImage("https://i.imgur.com/kpYlg0p.png", (error, image) => {
@@ -77,23 +81,16 @@ export const HomeModule = () => {
   const addOrRemovePinpoint = (e: MapLayerMouseEvent) => {
     const map = e.target;
 
-    const pinpointCount = map.queryRenderedFeatures(undefined, {
-      layers: ["measure-points"],
-    })?.length;
-
-    if (pinpointCount === 1) {
-      setOpenSheet(true);
-    }
-
     const features = map.queryRenderedFeatures(e.point as PointLike, {
       layers: ["measure-points"],
     });
 
-    if (geojson.features.length > 1) geojson.features.pop();
+    if (geojsonRef.current.features.length > 1)
+      geojsonRef.current.features.pop();
 
     if (features.length) {
       const id = features[0]?.properties?.id;
-      geojson.features = geojson.features.filter(
+      geojsonRef.current.features = geojsonRef.current.features.filter(
         (point: any) => point?.properties?.id !== id
       );
     } else {
@@ -108,64 +105,86 @@ export const HomeModule = () => {
         },
       };
 
-      geojson.features.push(point);
+      geojsonRef.current.features.push(point);
     }
 
-    if (geojson.features.length > 1) {
-      linestring.geometry.coordinates = geojson.features.map(
-        (point: any) => point.geometry.coordinates
-      );
+    if (geojsonRef.current.features.length > 1) {
+      linestringRef.current.geometry.coordinates =
+        geojsonRef.current.features.map(
+          (point: any) => point.geometry.coordinates
+        );
 
-      geojson.features.push(linestring);
+      geojsonRef.current.features.push(linestringRef.current);
     }
 
     const source = map.getSource("geojson") as GeoJSONSource;
 
-    source.setData(geojson);
+    source.setData(geojsonRef.current);
+
+    const pointCount = geojsonRef.current.features.filter((feature: any) => {
+      return feature.geometry.type === "Point";
+    }).length;
+
+    if (pointCount === 1) {
+      setPinpointType("dest");
+    }
+    if (pointCount === 2) {
+      setPinpointType("done");
+    }
   };
 
   const onMapClick = async (e: MapLayerMouseEvent) => {
     addOrRemovePinpoint(e);
+    getCountryByCoordinates(e);
+  };
 
-    // try {
-    //   const response = await axios({
-    //     method: "GET",
-    //     url: `https://api.opencagedata.com/geocode/v1/json?q=${e.lngLat.lat}+${e.lngLat.lng}&key=${process.env.NEXT_PUBLIC_OPEN_CAGE_DATA_API_KEY}`,
-    //   });
-
-    //   const { country, country_code } = response.data.results[0].components;
-    //   if (!country) {
-    //     toast({
-    //       title: "Error!",
-    //       description: "You can't pick regions of the ocean.",
-    //       variant: "destructive",
-    //     });
-    //   } else {
-    //     toast({
-    //       title: "Setting source country:",
-    //       description: country,
-    //       action: (
-    //         <Image
-    //           src={`https://flagcdn.com/48x36/${country_code}.png`}
-    //           width={50}
-    //           height={50}
-    //           alt={`${country} flag`}
-    //           quality={100}
-    //         />
-    //       ),
-    //     });
-    //   }
-    // } catch (err) {}
+  const getCountryByCoordinates = async (e: MapLayerMouseEvent) => {
+    try {
+      const response = await axios({
+        method: "GET",
+        url: `https://api.opencagedata.com/geocode/v1/json?q=${e.lngLat.lat}+${e.lngLat.lng}&key=${process.env.NEXT_PUBLIC_OPEN_CAGE_DATA_API_KEY}`,
+      });
+      const { country, country_code } = response.data.results[0].components;
+      if (!country) {
+        toast({
+          title: "Error!",
+          description: "You can't pick regions of the ocean.",
+          variant: "destructive",
+        });
+      } else {
+        if (pinpointType === "src") {
+          setSource({ name: country, code: country_code });
+        } else {
+          setDestination({ name: country, code: country_code });
+        }
+        toast({
+          title: `Setting ${
+            pinpointType === "src" ? "source" : "destination"
+          } country:`,
+          description: country,
+          action: (
+            <Image
+              src={`https://flagcdn.com/48x36/${country_code}.png`}
+              width={50}
+              height={50}
+              alt={`${country} flag`}
+              quality={100}
+            />
+          ),
+        });
+      }
+    } catch (err) {}
   };
 
   return (
     <div>
+      <SelectRegionAlert />
       <Map
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAP_API_KEY}
         initialViewState={{
-          longitude: -122.4,
-          latitude: 37.8,
+          longitude: -100,
           zoom: 0,
+          latitude: 40,
         }}
         style={{ width: "100%", height: "100vh" }}
         mapStyle="mapbox://styles/mapbox/streets-v12"
@@ -177,15 +196,52 @@ export const HomeModule = () => {
         }}
       />
 
-      <Sheet open={openSheet} onOpenChange={() => setOpenSheet(!openSheet)}>
-        <SheetContent side={"bottom"}>
+      <Sheet
+        open={openSheet}
+        onOpenChange={() => {
+          setOpenSheet(!openSheet);
+        }}
+      >
+        <SheetContent side={"bottom"} className="flex flex-col gap-4">
           <SheetHeader>
-            <SheetTitle>Are you sure absolutely sure?</SheetTitle>
+            <SheetTitle>Almost done...</SheetTitle>
             <SheetDescription>
-              This action cannot be undone. This will permanently delete your
-              account and remove your data from our servers.
+              Tell your unique stories living abroad. Feel free to express
+              yourself!
             </SheetDescription>
           </SheetHeader>
+
+          <div className="flex flex-col text-sm gap-3">
+            <div className="flex flex-col gap-1">
+              <span>You are from</span>
+              <div className="flex items-center gap-2">
+                <Image
+                  src={`https://flagcdn.com/48x36/${source?.code}.png`}
+                  width={40}
+                  height={40}
+                  alt={`${source?.name} flag`}
+                  quality={100}
+                />
+                <span className="font-medium">{source?.name}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span>You are abroad in</span>
+              <div className="flex items-center gap-2">
+                <Image
+                  src={`https://flagcdn.com/48x36/${destination?.code}.png`}
+                  width={40}
+                  height={40}
+                  alt={`${destination?.name} flag`}
+                  quality={100}
+                />
+                <span className="font-medium">{destination?.name}</span>
+              </div>
+            </div>
+          </div>
+
+          <Textarea placeholder="Type your message here." rows={10} />
         </SheetContent>
       </Sheet>
     </div>

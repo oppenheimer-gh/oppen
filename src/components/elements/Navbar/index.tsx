@@ -2,6 +2,15 @@ import { useAuthContext } from "@/components/contexts";
 import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import React from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Navbar = () => {
   const { user, logout } = useAuthContext();
@@ -9,6 +18,7 @@ export const Navbar = () => {
   const signOut = async () => {
     await logout();
   };
+
   return (
     <nav className="z-[9999] sticky inset-0 px-6 py-4 flex items-center justify-between">
       <Link href={"/"}>
@@ -35,7 +45,32 @@ export const Navbar = () => {
             </Link>{" "}
           </>
         ) : (
-          <Button onClick={signOut}>Logout</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Avatar className={`w-[50px] h-[50px] hover:shadow-lg`}>
+                <AvatarImage src={user.profile_photo_url} />
+                <AvatarFallback>PC</AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{user.username}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer">
+                <Link href={"/profile"}>Profile</Link>
+              </DropdownMenuItem>
+              {user.is_mentor ? (
+                <DropdownMenuItem className="cursor-pointer">
+                  <Link href={"/dashboard"}>Dashboard</Link>
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem
+                className="text-red-500 cursor-pointer"
+                onClick={signOut}
+              >
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </nav>

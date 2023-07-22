@@ -1,5 +1,10 @@
+import { HomeContextProvider } from "@/components/contexts";
 import { HomeModule } from "@/components/modules";
 
 export default function Home() {
-  return <HomeModule />;
+  return (
+    <HomeContextProvider>
+      <HomeModule />
+    </HomeContextProvider>
+  );
 }

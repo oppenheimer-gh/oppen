@@ -180,6 +180,7 @@ export const PostSheet: React.FC = () => {
         title: "Success!",
         description: "Mentor chosen.",
       });
+      await getUserMenteeData();
     } catch (err) {
       toast({
         title: "Error",

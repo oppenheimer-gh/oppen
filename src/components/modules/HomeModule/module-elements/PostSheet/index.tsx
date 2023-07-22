@@ -343,9 +343,52 @@ export const PostSheet: React.FC = () => {
           </TabsList>
           <TabsContent value="story">
             <div className="flex flex-col gap-2">
-              <span>
-                {post?.user.username} is from somewhere and is now is somewhere.
-              </span>
+              <div className="flex items-center gap-4">
+                <Badge
+                  variant={"outline"}
+                  className="flex items-center gap-2 px-4 py-2 justify-between"
+                >
+                  <Label>From</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Image
+                          src={`https://flagcdn.com/48x36/${post?.source_country_code}.png`}
+                          width={50}
+                          height={50}
+                          alt={`${post?.source_country} flag`}
+                          quality={100}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{post?.source_country}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Badge>
+                <Badge
+                  variant={"outline"}
+                  className="flex items-center gap-2 px-4 py-2 justify-between"
+                >
+                  <Label>Now in</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Image
+                          src={`https://flagcdn.com/48x36/${post?.destination_country_code}.png`}
+                          width={50}
+                          height={50}
+                          alt={`${post?.destination_country} flag`}
+                          quality={100}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{post?.destination_country}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Badge>
+              </div>
 
               <div className="flex flex-col gap-1">
                 <span>Here is {post?.user.username}&apos;s story:</span>
@@ -355,6 +398,9 @@ export const PostSheet: React.FC = () => {
               <Separator />
               <div className="flex flex-col gap-4">
                 <span className="font-medium">Comments</span>
+                {!comments || comments?.length === 0 ? (
+                  <span>No comments in this post yet.</span>
+                ) : null}
                 {comments?.map(
                   ({ id, created_at, message, user: commentMaker }, index) => {
                     return (
@@ -650,7 +696,10 @@ export const PostSheet: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <span>Know about {post?.user.username} more!</span>
+                <span>
+                  Reach out to {post?.user.username}, maybe you will find a new
+                  friend!
+                </span>
               </CardContent>
             </Card>
           </TabsContent>

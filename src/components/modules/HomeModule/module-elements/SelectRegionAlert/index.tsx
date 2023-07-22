@@ -7,17 +7,18 @@ import { Button } from "@/components/ui/button";
 export const SelectRegionAlert: React.FC = () => {
   const { user } = useAuthContext();
   const { pinpointType, setOpenSheet } = useHomeContext();
+
   return (
     <Alert className="flex items-center justify-between">
       <div className="flex flex-col">
-        <AlertTitle className="flex items-center gap-2">
+        <AlertTitle className="flex items-center gap-2 font-semibold">
           <RocketIcon className="h-4 w-4" />
           {!user
             ? "Login to experience a different way of interacting."
             : user?.has_posted
             ? "Explore the map!"
             : pinpointType === "src"
-            ? "Where do you come from?"
+            ? "Where did you live before living abroad?"
             : pinpointType === "dest"
             ? "Where are you right now?"
             : "All set!"}
@@ -34,7 +35,9 @@ export const SelectRegionAlert: React.FC = () => {
       </div>
 
       {pinpointType === "done" ? (
-        <Button onClick={() => setOpenSheet(true)}>Confirm</Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setOpenSheet(true)}>Confirm</Button>
+        </div>
       ) : null}
     </Alert>
   );
